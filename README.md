@@ -8,6 +8,12 @@ CMake / JSON highlighting) and react-markdown (the run report).
 
 ## Running it
 
+**Shortcut (Windows):** with both repos checked out side by side (`…\Backend` and
+`…\Frontend`), run `start.bat` in the backend repo. It starts the API and this app, then opens
+the browser.
+
+**Manually:**
+
 1. Start the backend API in the backend repo
    ([Semantic_Decompiler](https://github.com/yuri8822/Semantic_Decompiler)), on `127.0.0.1:8765`
    by default:

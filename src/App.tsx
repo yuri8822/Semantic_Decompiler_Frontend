@@ -42,7 +42,7 @@ export default function App() {
       <main className="main">
         {!online && !health.loading && (
           <div className="alert alert-bad">
-            Can't reach the backend API. Start it with <code>python serve.py</code> (or <code>start_api.bat</code>)
+            Can't reach the backend API. Start it with <code>start.bat</code> (or <code>python serve.py</code>)
             in the backend repo; this page reconnects automatically.
           </div>
         )}
