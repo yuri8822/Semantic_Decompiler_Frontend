@@ -1,7 +1,7 @@
 import type {
-  BinaryFile, FunctionDetail, FunctionSummary, GlobalRecord, Health, Job, JsonSchema, LogDetail, LogEntry,
-  ProjectFile, RoundInfo, SettingsValue, TypeDetail, TypeSummary, ValidationErrorItem, WorkspaceDetail,
-  WorkspaceSummary,
+  BinaryFile, FunctionDetail, FunctionEdit, FunctionSummary, GlobalEdit, GlobalRecord, Health, Job, JsonSchema,
+  LogDetail, LogEntry, ProjectFile, RoundInfo, SettingsValue, TypeDetail, TypeEdit, TypeSummary,
+  ValidationErrorItem, WorkspaceDetail, WorkspaceSummary,
 } from "./types";
 
 /** API origin: empty means same origin (dev proxy or the API serving the built app). */
@@ -96,4 +96,20 @@ export const api = {
   },
   log: (name: string, log: string) => request<LogDetail>("GET", `${ws(name)}/logs/${enc(log)}`),
   report: (name: string) => request<string>("GET", `${ws(name)}/report`, undefined, true),
+
+  // Edits: omit = unchanged, value = override, null = clear. 409 while a job runs on the workspace.
+  editFunction: (name: string, address: string, edit: FunctionEdit) =>
+    request<FunctionDetail>("PATCH", `${ws(name)}/functions/${enc(address)}`, edit),
+  clearFunctionEdits: (name: string, address: string) =>
+    request<FunctionDetail>("DELETE", `${ws(name)}/functions/${enc(address)}/overrides`),
+  resetFunction: (name: string, address: string, what: { analysis?: boolean; code?: boolean }) =>
+    request<FunctionDetail>("POST", `${ws(name)}/functions/${enc(address)}/reset`, what),
+  editType: (name: string, type: string, edit: TypeEdit) =>
+    request<TypeDetail>("PATCH", `${ws(name)}/types/${enc(type)}`, edit),
+  clearTypeEdits: (name: string, type: string) =>
+    request<TypeDetail>("DELETE", `${ws(name)}/types/${enc(type)}/overrides`),
+  editGlobal: (name: string, address: string, edit: GlobalEdit) =>
+    request<GlobalRecord>("PATCH", `${ws(name)}/globals/${enc(address)}`, edit),
+  applyEdits: (name: string, settings: SettingsValue = {}) =>
+    request<Job>("POST", `${ws(name)}/apply`, { settings }),
 };

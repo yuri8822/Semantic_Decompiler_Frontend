@@ -349,6 +349,19 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent-soft
 .sf-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); display: inline-block; }
 @media (max-width: 900px) { .sf-field { grid-template-columns: 1fr; } .sf-help, .sf-error { grid-column: 1; } }
 
+/* ---------- editing ---------- */
+.editor { display: flex; flex-direction: column; gap: 10px; }
+.edit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
+.edit-grid .span-2 { grid-column: span 2; }
+.edit-field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 500; }
+.edit-field input, .edit-field select, .edit-field textarea { width: 100%; }
+.edit-table input[type="text"] { width: 100%; }
+.edit-table input.narrow { width: 90px; }
+.edited-mark { display: inline-flex; align-items: center; gap: 6px; margin-left: 4px; }
+.edited-mark .badge { margin-left: 0; }
+.apply-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+@media (max-width: 900px) { .edit-grid { grid-template-columns: 1fr; } .edit-grid .span-2 { grid-column: span 1; } }
+
 /* ---------- markdown report ---------- */
 .markdown { max-width: 1100px; }
 .markdown h1 { font-size: 20px; }

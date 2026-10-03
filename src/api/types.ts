@@ -119,6 +119,9 @@ export interface WorkspaceSummary {
   /** Recorded binary path, or a same-named file in the backend's binary folders if it moved. */
   binary: string;
   binary_found: boolean;
+  /** User edits exist that the next run has not applied to Ghidra/code yet. */
+  edits_pending: boolean;
+  overrides: { functions: number; classes: number; globals: number };
   program: { name?: string; language?: string; compiler?: string; image_base?: string; pointer_size?: number };
   updated_at: string;
   current_round: number;
@@ -163,6 +166,7 @@ export interface FunctionSummary {
   validator_warnings: number;
   instructions: number;
   class: string;
+  edited: boolean;
 }
 
 export interface Issue {
@@ -212,13 +216,28 @@ export interface FunctionAnalysis {
   provider: string;
 }
 
+/** User overrides on a function (absent key = not overridden). */
+export interface FunctionOverrides {
+  name?: string;
+  class_name?: string;
+  method_kind?: string;
+  return_type?: string;
+  summary?: string;
+  params?: Record<string, { name?: string; type?: string; role?: string }>;
+  locals?: Record<string, { name?: string; type?: string }>;
+}
+
 export interface FunctionRecord {
   address: string;
   ghidra_name: string;
   full_name: string;
   excluded: string;
   alias_of: string;
+  /** Effective analysis: the LLM's, with the user's overrides applied. */
   analysis: FunctionAnalysis | null;
+  /** What the LLM itself concluded (null for records from before editing existed). */
+  llm_analysis: FunctionAnalysis | null;
+  overrides: FunctionOverrides;
   analysis_history: { round: number; name: string; name_confidence: number; summary: string }[];
   needs_reanalysis: boolean;
   cpp: string;
@@ -260,7 +279,8 @@ export interface FunctionDetail {
     assembly: string[];
     parameters: { index: number; name: string; type: string; is_this: boolean; hidden_return: boolean }[];
     locals: { name: string; type: string }[];
-    field_accesses: { param: number; param_name: string; offset: number; size: number; access: string; at: string }[];
+    /** param >= 0: relative to that parameter; param -1: through a pointer to structure `type`. */
+    field_accesses: { param: number; param_name: string; type?: string; offset: number; size: number; access: string; at: string }[];
     arg_passes: { callee: string; arg: number; param: number; offset: number }[];
     strings: string[];
     globals: { address: string; name: string; type: string; external: boolean }[];
@@ -283,6 +303,13 @@ export interface TypeSummary {
   members: number;
   round: number;
   from_symbols: boolean;
+  edited: boolean;
+}
+
+export interface TypeOverrides {
+  base_class?: string;
+  size?: number;
+  fields?: Record<string, { name?: string; type?: string; size?: number; remove?: boolean }>;
 }
 
 export interface TypeDetail {
@@ -298,6 +325,7 @@ export interface TypeDetail {
   same_as: string[];
   notes: string;
   from_symbols: boolean;
+  overrides: TypeOverrides;
 }
 
 export interface GlobalRecord {
@@ -308,6 +336,33 @@ export interface GlobalRecord {
   confidence: number;
   tier: Tier;
   referenced_by: string[];
+  overrides: { name?: string; type?: string };
+  llm: { name?: string; type?: string; confidence?: number };
+}
+
+/* ---------- edits (request bodies) ---------- */
+// For every field: omit = unchanged, a value = override, null = clear the override.
+
+export interface FunctionEdit {
+  name?: string | null;
+  class_name?: string | null;
+  method_kind?: string | null;
+  return_type?: string | null;
+  summary?: string | null;
+  params?: { index: number; name?: string | null; type?: string | null }[];
+  locals?: { old_name: string; name?: string | null; type?: string | null }[];
+}
+
+export interface TypeEdit {
+  base_class?: string | null;
+  size?: number | null;
+  fields?: { offset: number; name?: string | null; type?: string | null; size?: number | null;
+    remove?: boolean; clear?: boolean }[];
+}
+
+export interface GlobalEdit {
+  name?: string | null;
+  type?: string | null;
 }
 
 export interface RoundInfo {

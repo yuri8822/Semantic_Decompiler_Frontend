@@ -78,9 +78,22 @@ src/
   styles.css    design tokens, light and dark themes
 ```
 
+## Editing (human in the loop)
+
+- **Function page:** *Edit* changes the name and class, kind, return type, summary, parameter
+  names and types, and locals. *Revert my edits* goes back to the LLM's analysis. *Regenerate
+  code* and *Re-analyze* make the next run redo the function.
+- **Classes tab:** *Edit layout* renames, retypes or resizes fields, adds or removes them, and
+  sets the base class and size.
+- **Globals tab:** inline rename and retype.
+- **Markers:** edited values show an *edited* badge with the LLM's original on hover, and a
+  per-value *revert*.
+- **Applying:** while edits are unapplied, `ApplyEditsBar` shows *Apply edits*. It queues a
+  resume run that writes the edits into Ghidra and regenerates only the affected code, then
+  opens that run's live job page. Components that change data call `notifyEdited()` so the bar
+  updates immediately.
+
 ## Not in the MVP yet
 
-- Human-in-the-loop editing (accept or override names, types and fields, then re-apply them
-  to Ghidra). This needs backend endpoints that don't exist yet.
 - Function search across workspaces, and a call-graph view.
 - Authentication. The backend is localhost-only by design.

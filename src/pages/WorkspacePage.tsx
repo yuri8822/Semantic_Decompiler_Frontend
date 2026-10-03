@@ -1,5 +1,6 @@
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
+import { ApplyEditsBar } from "../components/ApplyEditsBar";
 import { ErrorBox, Loading, Tabs } from "../components/ui";
 import { useApi } from "../hooks/useApi";
 import ClassesTab from "./workspace/ClassesTab";
@@ -48,6 +49,7 @@ export default function WorkspacePage() {
           <button className="btn btn-danger-outline" onClick={remove}>Delete</button>
         </div>
       </div>
+      <ApplyEditsBar workspace={name} />
       {!w.binary_found && (
         <div className="alert alert-warn">
           The binary this workspace came from is no longer at <code>{w.binary}</code>. Put it in the backend's

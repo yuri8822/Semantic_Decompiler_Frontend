@@ -75,6 +75,7 @@ export default function FunctionsTab({ name }: { name: string }) {
                 <td>
                   <Link to={`/workspaces/${encodeURIComponent(name)}/functions/${f.address}`} className="mono">{f.name}</Link>
                   {f.name !== f.ghidra_name && <div className="muted small mono">ghidra: {f.ghidra_name}</div>}
+                  {f.edited && <Badge tone="info">edited</Badge>}
                   {f.contradictions > 0 && <Badge tone="warn" title="contradicted by the binary">contradiction</Badge>}
                   {f.needs_reanalysis && <Badge tone="warn">re-analysis queued</Badge>}
                 </td>

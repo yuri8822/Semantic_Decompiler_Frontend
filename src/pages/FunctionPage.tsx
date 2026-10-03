@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { FunctionAnalysis, FunctionDetail, Neighbour } from "../api/types";
+import { ApplyEditsBar, notifyEdited } from "../components/ApplyEditsBar";
 import { CodeBlock } from "../components/CodeBlock";
+import { EditedMark, FunctionEditor } from "../components/FunctionEditor";
 import { Badge, Card, Collapsible, CompileBadge, Empty, ErrorBox, KeyValue, Loading, Tabs, TierBadge } from "../components/ui";
 import { useApi } from "../hooks/useApi";
 import { useTier } from "../hooks/useTier";
@@ -15,6 +17,8 @@ export default function FunctionPage() {
   const { name = "", address = "" } = useParams();
   const detail = useApi(() => api.function(name, address), [name, address]);
   const [ghidraView, setGhidraView] = useState<GhidraView>("current");
+  const [editing, setEditing] = useState(false);
+  const [actionError, setActionError] = useState<string>();
   const tierOf = useTier();
 
   if (detail.error) return <div className="page"><ErrorBox error={detail.error} /></div>;
@@ -25,6 +29,20 @@ export default function FunctionPage() {
   const errors = r.static_issues.filter((i) => i.severity === "error");
   const warnings = r.static_issues.filter((i) => i.severity === "warning");
   const ws = `/workspaces/${encodeURIComponent(name)}`;
+  const edited = Object.keys(r.overrides ?? {}).length > 0;
+  const editable = !r.excluded && !r.alias_of;
+
+  async function action(fn: () => Promise<unknown>, confirmText?: string) {
+    if (confirmText && !confirm(confirmText)) return;
+    setActionError(undefined);
+    try {
+      await fn();
+      notifyEdited();
+      detail.reload();
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : String(e));
+    }
+  }
 
   return (
     <div className="page">
@@ -39,11 +57,33 @@ export default function FunctionPage() {
             {r.excluded && <Badge>excluded: {r.excluded}</Badge>}
             {r.alias_of && <Badge>alias of <Link to={`${ws}/functions/${r.alias_of}`}>{r.alias_of}</Link></Badge>}
             {a && <TierBadge tier={tierOf(a.name_confidence)} confidence={a.name_confidence} />}
+            {edited && <Badge tone="info">edited by you</Badge>}
             {r.cpp && <CompileBadge status={r.compile_status} />}
             {r.needs_reanalysis && <Badge tone="warn">low confidence — queued for re-analysis</Badge>}
           </div>
         </div>
+        {editable && (
+          <div className="row gap wrap">
+            <button className="btn btn-primary" onClick={() => setEditing(true)} disabled={editing}>Edit</button>
+            {edited && <button className="btn" onClick={() => action(() => api.clearFunctionEdits(name, r.address),
+              "Remove all your edits on this function and go back to the LLM's analysis?")}>Revert my edits</button>}
+            <button className="btn" title="Throw away the generated C++; the next run writes it again"
+              onClick={() => action(() => api.resetFunction(name, r.address, { code: true }))}>Regenerate code</button>
+            <button className="btn" title="Throw away the analysis and code; the next run redoes both (your edits stay)"
+              onClick={() => action(() => api.resetFunction(name, r.address, { analysis: true, code: true }),
+                "Discard this function's analysis and code? The next run analyzes it again; your edits are kept.")}>
+              Re-analyze</button>
+          </div>
+        )}
       </div>
+
+      <ApplyEditsBar workspace={name} />
+      {actionError && <div className="alert alert-bad">{actionError}</div>}
+      {editing && (
+        <Card title="Edit function">
+          <FunctionEditor workspace={name} detail={d} onSaved={() => detail.reload()} onClose={() => setEditing(false)} />
+        </Card>
+      )}
 
       {a?.contradictions.length ? (
         <div className="alert alert-warn">
@@ -100,14 +140,23 @@ export default function FunctionPage() {
       </div>
 
       <Card title="Proven memory accesses (p-code)">
-        <p className="muted small">Loads and stores through <code>parameter + constant offset</code> — the ground truth that field claims are checked against.</p>
+        <p className="muted small">
+          Loads and stores at <code>base + constant offset</code>, where the base is a parameter or a pointer
+          Ghidra knows the class of — the ground truth that field claims are checked against.
+        </p>
         {d.ghidra.field_accesses.length ? (
           <table className="table compact">
-            <thead><tr><th>Parameter</th><th>Offset</th><th>Size</th><th>Access</th><th>At</th></tr></thead>
+            <thead><tr><th>Base</th><th>Offset</th><th>Size</th><th>Access</th><th>At</th></tr></thead>
             <tbody>
               {dedupeAccesses(d).map((x, i) => (
-                <tr key={i}><td className="mono">[{x.param}] {x.param_name}</td><td className="mono">+{hex(x.offset)}</td>
-                  <td>{x.size}</td><td>{x.access}</td><td className="mono small muted">{x.at}</td></tr>
+                <tr key={i}>
+                  <td className="mono">
+                    {x.param >= 0 ? <>param [{x.param}] {x.param_name}</> : <>{x.type} * <span className="muted">via {x.param_name || "a loaded pointer"}</span></>}
+                    {x.param >= 0 && x.type && <span className="muted"> ({x.type} *)</span>}
+                  </td>
+                  <td className="mono">+{hex(x.offset)}</td>
+                  <td>{x.size}</td><td>{x.access}</td><td className="mono small muted">{x.at}</td>
+                </tr>
               ))}
             </tbody>
           </table>
@@ -127,15 +176,20 @@ export default function FunctionPage() {
 
 function AnalysisCard({ a, d }: { a: FunctionAnalysis; d: FunctionDetail }) {
   const tierOf = useTier();
+  const ov = d.record.overrides ?? {};
+  const llm = d.record.llm_analysis;
   return (
     <Card title="Analysis" actions={<span className="muted small">round {a.round} · {a.provider}</span>}>
-      <p className="lead">{a.summary}</p>
+      <p className="lead">{a.summary} {"summary" in ov && <EditedMark llm={llm?.summary} />}</p>
       <KeyValue items={[
-        ["Name", <><span className="mono">{a.name}</span> <TierBadge tier={tierOf(a.name_confidence)} confidence={a.name_confidence} /></>],
-        ["Kind", `${a.method_kind}${a.class_name ? ` of ${a.class_name}` : ""}`],
+        ["Name", <><span className="mono">{a.name}</span> <TierBadge tier={tierOf(a.name_confidence)} confidence={a.name_confidence} />
+          {("name" in ov || "class_name" in ov) && <EditedMark llm={llm?.name} />}</>],
+        ["Kind", <>{`${a.method_kind}${a.class_name ? ` of ${a.class_name}` : ""}`}
+          {"method_kind" in ov && <EditedMark llm={llm?.method_kind} />}</>],
         ["Returns", <>
           <span className="mono">{a.return_type || "—"}</span>{" "}
           {a.return_type && <TierBadge tier={tierOf(a.return_confidence)} confidence={a.return_confidence} />}
+          {"return_type" in ov && <EditedMark llm={llm?.return_type} />}
           {a.return_meaning && <span className="muted"> — {a.return_meaning}</span>}
           {a.observed_return_type && <div className="small tone-text-warn">callers receive it as {a.observed_return_type}</div>}
         </>],
@@ -153,7 +207,8 @@ function AnalysisCard({ a, d }: { a: FunctionAnalysis; d: FunctionDetail }) {
                 <tr key={p.index} className={tierOf(p.confidence) === "low" ? "dim" : ""}>
                   <td>{p.index}</td>
                   <td className="mono small">{d.ghidra.parameters.find((x) => x.index === p.index)?.name ?? p.old_name}</td>
-                  <td className="mono"><strong>{p.name}</strong></td>
+                  <td className="mono"><strong>{p.name}</strong>
+                    {ov.params?.[String(p.index)] && <EditedMark llm={llm?.params.find((x) => x.index === p.index)?.name} />}</td>
                   <td className="mono small">{p.type}</td>
                   <td>{p.role !== "normal" ? <Badge tone="info">{p.role.replace("_", " ")}</Badge> : ""}</td>
                   <td><TierBadge tier={tierOf(p.confidence)} confidence={p.confidence} /></td>
@@ -218,7 +273,7 @@ function NeighbourList({ items, ws }: { items: Neighbour[]; ws: string }) {
 function dedupeAccesses(d: FunctionDetail) {
   const seen = new Set<string>();
   return d.ghidra.field_accesses.filter((x) => {
-    const k = `${x.param}:${x.offset}:${x.size}:${x.access}`;
+    const k = `${x.param}:${x.type ?? ""}:${x.offset}:${x.size}:${x.access}`;
     if (seen.has(k)) return false;
     seen.add(k);
     return true;
