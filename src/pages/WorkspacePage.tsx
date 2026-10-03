@@ -43,10 +43,17 @@ export default function WorkspacePage() {
           <p className="muted small">{w.program.language} · {w.program.compiler} · image base {w.program.image_base}</p>
         </div>
         <div className="row gap">
-          <Link className="btn" to={`/run?binary=${encodeURIComponent(w.binary)}`}>Resume / run again</Link>
+          <Link className="btn" to={`/run?binary=${encodeURIComponent(w.binary_found ? w.binary : "")}`}>
+            Resume / run again</Link>
           <button className="btn btn-danger-outline" onClick={remove}>Delete</button>
         </div>
       </div>
+      {!w.binary_found && (
+        <div className="alert alert-warn">
+          The binary this workspace came from is no longer at <code>{w.binary}</code>. Put it in the backend's
+          {" "}<code>binaries/</code> or <code>TestBinaries/</code> folder (or upload it on New run) to resume.
+        </div>
+      )}
       <Tabs<TabId>
         value={tab}
         onChange={(t) => setParams(t === "overview" ? {} : { tab: t }, { replace: true })}

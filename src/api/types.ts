@@ -116,7 +116,9 @@ export type PipelineEvent = EventBase &
 
 export interface WorkspaceSummary {
   name: string;
+  /** Recorded binary path, or a same-named file in the backend's binary folders if it moved. */
   binary: string;
+  binary_found: boolean;
   program: { name?: string; language?: string; compiler?: string; image_base?: string; pointer_size?: number };
   updated_at: string;
   current_round: number;
