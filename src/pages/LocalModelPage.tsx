@@ -16,7 +16,7 @@ const STATES: Record<LlamaState, { tone: string; label: string }> = {
   stopped: { tone: "neutral", label: "stopped" },
   loading: { tone: "info", label: "loading model" },
   ready: { tone: "good", label: "ready" },
-  exited: { tone: "warn", label: "stopped" },
+  exited: { tone: "bad", label: "exited" },
   external: { tone: "info", label: "running (started elsewhere)" },
 };
 
