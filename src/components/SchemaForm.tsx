@@ -16,17 +16,22 @@ export interface SchemaFormProps {
   errors?: Record<string, string>;
   filter?: string;
   baselineLabel?: string;
+  /** Render only these groups/fields (paths into the schema) instead of everything. */
+  roots?: string[][];
+  /** Dotted paths not to render (e.g. a field the page shows its own control for). */
+  hide?: string[];
 }
 
-export function SchemaForm({ schema, value, baseline, onChange, errors = {}, filter = "", baselineLabel = "saved" }:
-  SchemaFormProps) {
-  const ctx: Ctx = { root: schema, value, baseline, onChange, errors, filter: filter.trim().toLowerCase(), baselineLabel };
-  const props = schema.properties ?? {};
+export function SchemaForm({ schema, value, baseline, onChange, errors = {}, filter = "", baselineLabel = "saved",
+  roots, hide = [] }: SchemaFormProps) {
+  const ctx: Ctx = { root: schema, value, baseline, onChange, errors, filter: filter.trim().toLowerCase(), baselineLabel,
+    hide: new Set(hide) };
+  const entries: [string[], JsonSchema | undefined][] = roots
+    ? roots.map((path) => [path, schemaAt(schema, path)])
+    : Object.entries(schema.properties ?? {}).map(([key, prop]) => [[key], prop]);
   return (
     <div className="schema-form">
-      {Object.entries(props).map(([key, prop]) => (
-        <Node key={key} ctx={ctx} path={[key]} schema={prop} depth={0} />
-      ))}
+      {entries.map(([path, prop]) => prop && <Node key={path.join(".")} ctx={ctx} path={path} schema={prop} depth={0} />)}
     </div>
   );
 }
@@ -39,6 +44,13 @@ interface Ctx {
   errors: Record<string, string>;
   filter: string;
   baselineLabel: string;
+  hide: Set<string>;
+}
+
+function schemaAt(root: JsonSchema, path: string[]): JsonSchema | undefined {
+  let s: JsonSchema | undefined = root;
+  for (const key of path) s = s && resolve(root, s).properties?.[key];
+  return s;
 }
 
 function resolve(root: JsonSchema, s: JsonSchema): JsonSchema {
@@ -80,6 +92,7 @@ function subtreeMatches(ctx: Ctx, path: string[], s: JsonSchema): boolean {
 }
 
 function Node({ ctx, path, schema, depth }: { ctx: Ctx; path: string[]; schema: JsonSchema; depth: number }) {
+  if (ctx.hide.has(path.join("."))) return null;
   const resolved = resolve(ctx.root, schema);
   if (resolved.type === "object" && resolved.properties) {
     if (!subtreeMatches(ctx, path, schema)) return null;

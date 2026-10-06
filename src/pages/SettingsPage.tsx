@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../api/client";
 import type { JsonSchema } from "../api/types";
+import { notifySettingsChanged } from "../components/ProviderPicker";
 import { errorMap, SchemaForm } from "../components/SchemaForm";
 import { Card, ErrorBox, Loading } from "../components/ui";
 import { countLeaves, diff, type Obj } from "../lib/objects";
@@ -38,6 +39,7 @@ export default function SettingsPage() {
     setStatus(undefined);
     try {
       const result = await api.saveSettings(value);
+      notifySettingsChanged();
       setSaved(result);
       setDraft(result);
       setErrors({});

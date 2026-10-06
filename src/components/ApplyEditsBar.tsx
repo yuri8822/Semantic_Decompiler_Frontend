@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useApi } from "../hooks/useApi";
+import { ProviderPicker, useProviders } from "./ProviderPicker";
 
 const EDITED_EVENT = "semdec:edited";
 
@@ -14,6 +15,8 @@ export function notifyEdited() {
 export function ApplyEditsBar({ workspace }: { workspace: string }) {
   const navigate = useNavigate();
   const summary = useApi(() => api.workspace(workspace), [workspace], 5000);
+  const providers = useProviders();
+  const [provider, setProvider] = useState<string>();   // undefined = the saved default
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
 
@@ -31,11 +34,14 @@ export function ApplyEditsBar({ workspace }: { workspace: string }) {
     o.globals && `${o.globals} global${o.globals === 1 ? "" : "s"}`,
   ].filter(Boolean);
 
+  const defaultProvider = providers.data?.default;
+  const chosen = provider ?? defaultProvider ?? "";
+
   async function apply() {
     setBusy(true);
     setError(undefined);
     try {
-      const job = await api.applyEdits(workspace);
+      const job = await api.applyEdits(workspace, chosen && chosen !== defaultProvider ? { llm: { provider: chosen } } : {});
       navigate(`/jobs/${job.id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -51,7 +57,12 @@ export function ApplyEditsBar({ workspace }: { workspace: string }) {
         changes go into Ghidra and the affected code is regenerated. Nothing else is re-analyzed.
         {error && <div className="tone-text-bad">{error}</div>}
       </div>
-      <button className="btn btn-primary" disabled={busy} onClick={apply}>{busy ? "Starting…" : "Apply edits"}</button>
+      <div className="apply-bar-actions">
+        {providers.data && (
+          <ProviderPicker info={providers.data} value={chosen} onChange={setProvider} disabled={busy} />
+        )}
+        <button className="btn btn-primary" disabled={busy} onClick={apply}>{busy ? "Starting…" : "Apply edits"}</button>
+      </div>
     </div>
   );
 }

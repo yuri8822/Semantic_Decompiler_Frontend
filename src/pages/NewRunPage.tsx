@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import type { BinaryFile, JsonSchema } from "../api/types";
+import { ProviderPicker, useProviders } from "../components/ProviderPicker";
 import { errorMap, SchemaForm } from "../components/SchemaForm";
 import { Card, Collapsible, ErrorBox, Loading } from "../components/ui";
 import { fileName, fmtSize } from "../lib/format";
@@ -33,6 +34,20 @@ export default function NewRunPage() {
       })
       .catch(setLoadError);
   }, []);
+
+  // Follow the saved default provider (e.g. changed from the sidebar) unless this
+  // run already picked a different one.
+  const providers = useProviders();
+  const savedDefault = providers.data?.default;
+  useEffect(() => {
+    if (!savedDefault || !saved) return;
+    const oldDefault = getPath(saved, ["llm", "provider"]);
+    if (oldDefault === savedDefault) return;
+    setSaved(setPath(saved, ["llm", "provider"], savedDefault));
+    if (draft && getPath(draft, ["llm", "provider"]) === oldDefault) {
+      setDraft(setPath(draft, ["llm", "provider"], savedDefault));
+    }
+  }, [savedDefault]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selected = useMemo(() => binaries.find((b) => b.path === binary), [binaries, binary]);
   const existingWorkspace = selected?.workspace ?? null;
@@ -141,9 +156,14 @@ export default function NewRunPage() {
         <div className="quick-grid">
           <label className="field">
             <span>Provider</span>
-            <select value={String(get("llm.provider"))} onChange={(e) => set("llm.provider", e.target.value)}>
-              {providerEnum.map((p) => <option key={p}>{p}</option>)}
-            </select>
+            {providers.data ? (
+              <ProviderPicker info={providers.data} value={String(get("llm.provider"))}
+                onChange={(p) => set("llm.provider", p)} />
+            ) : (
+              <select value={String(get("llm.provider"))} onChange={(e) => set("llm.provider", e.target.value)}>
+                {providerEnum.map((p) => <option key={p}>{p}</option>)}
+              </select>
+            )}
           </label>
           <label className="field">
             <span>Function limit <span className="muted">(0 = all)</span></span>

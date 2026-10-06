@@ -1,6 +1,6 @@
 import type {
   BinaryFile, FunctionDetail, FunctionEdit, FunctionSummary, GlobalEdit, GlobalRecord, Health, Job, JsonSchema,
-  LogDetail, LogEntry, ProjectFile, RoundInfo, SettingsValue, TypeDetail, TypeEdit, TypeSummary,
+  LlamaModel, LlamaStatus, LogDetail, LogEntry, ProjectFile, ProvidersInfo, RoundInfo, SettingsValue, TypeDetail, TypeEdit, TypeSummary,
   ValidationErrorItem, WorkspaceDetail, WorkspaceSummary,
 } from "./types";
 
@@ -60,7 +60,15 @@ export const api = {
   settings: () => request<SettingsValue>("GET", "/api/settings"),
   settingsDefaults: () => request<SettingsValue>("GET", "/api/settings/defaults"),
   saveSettings: (value: SettingsValue) => request<SettingsValue>("PUT", "/api/settings", value),
+  /** Merge a partial object into the saved defaults. */
+  patchSettings: (partial: SettingsValue) => request<SettingsValue>("PATCH", "/api/settings", partial),
+  providers: () => request<ProvidersInfo>("GET", "/api/providers"),
   resolveSettings: (overrides: SettingsValue) => request<SettingsValue>("POST", "/api/settings/resolve", overrides),
+
+  llamacpp: () => request<LlamaStatus>("GET", "/api/llamacpp"),
+  startLlamacpp: () => request<LlamaStatus>("POST", "/api/llamacpp/start"),
+  stopLlamacpp: () => request<LlamaStatus>("POST", "/api/llamacpp/stop"),
+  llamacppModels: () => request<{ models: LlamaModel[]; searched: string[] }>("GET", "/api/llamacpp/models"),
 
   binaries: () => request<BinaryFile[]>("GET", "/api/binaries"),
   uploadBinary: (file: File) => {

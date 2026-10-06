@@ -1,10 +1,12 @@
 import { NavLink, Route, Routes } from "react-router-dom";
 import { api } from "./api/client";
+import { SidebarProvider } from "./components/ProviderPicker";
 import { useApi } from "./hooks/useApi";
 import Dashboard from "./pages/Dashboard";
 import FunctionPage from "./pages/FunctionPage";
 import JobPage from "./pages/JobPage";
 import JobsPage from "./pages/JobsPage";
+import LocalModelPage from "./pages/LocalModelPage";
 import LogPage from "./pages/LogPage";
 import NewRunPage from "./pages/NewRunPage";
 import NotFound from "./pages/NotFound";
@@ -33,8 +35,10 @@ export default function App() {
             Jobs {health.data?.running_job && <span className="pulse" title="a job is running" />}
           </NavLink>
           <NavLink to="/workspaces">Workspaces</NavLink>
+          <NavLink to="/local">Local model</NavLink>
           <NavLink to="/settings">Settings</NavLink>
         </nav>
+        {online && <SidebarProvider />}
         <div className={`conn ${online ? "on" : "off"}`} title={health.error?.message}>
           <span className="conn-dot" /> {online ? "backend connected" : health.loading && !health.error ? "connecting…" : "backend offline"}
         </div>
@@ -52,6 +56,7 @@ export default function App() {
           <Route path="/jobs" element={<JobsPage />} />
           <Route path="/jobs/:id" element={<JobPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/local" element={<LocalModelPage />} />
           <Route path="/workspaces" element={<WorkspacesPage />} />
           <Route path="/workspaces/:name" element={<WorkspacePage />} />
           <Route path="/workspaces/:name/functions/:address" element={<FunctionPage />} />

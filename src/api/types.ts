@@ -45,6 +45,62 @@ export interface Health {
   running_job: string | null;
 }
 
+export interface ProviderStatus {
+  name: string;
+  label: string;
+  model: string;
+  local: boolean;
+  api_key_var: string;
+  api_key_present: boolean | null;
+  reachable: boolean | null;
+  /** Not running, but the backend launches it when a run needs it (llama.cpp). */
+  auto_start: boolean;
+  /** Can be used right now (key set, local server answering, or startable on demand). */
+  usable: boolean;
+  problem: string;
+}
+
+/* ---------- local llama.cpp server ---------- */
+
+/** stopped/exited: not running; loading: started, model loading; external: started outside the backend. */
+export type LlamaState = "stopped" | "loading" | "ready" | "exited" | "external";
+
+export interface LlamaStatus {
+  state: LlamaState;
+  ready: boolean;
+  pid: number | null;
+  exit_code: number | null;
+  started_at: string;
+  command: string[];
+  /** Running, but the settings changed since it started: restart to apply them. */
+  stale: boolean;
+  executable: string;
+  installed: boolean;
+  model_path: string;
+  model_exists: boolean;
+  base_url: string;
+  auto_start: boolean;
+  can_start: boolean;
+  problem: string;
+  log_tail: string;
+}
+
+export interface LlamaModel {
+  path: string;
+  name: string;
+  /** "Org/Repo" for the HuggingFace cache, else the folder it was found in. */
+  repo: string;
+  size: number;
+  folder: string;
+}
+
+export interface ProvidersInfo {
+  default: string;
+  /** Per-agent overrides of the default (null = uses the default). */
+  agents: Record<"analyzer" | "type_reconstructor" | "code_reconstructor", string | null>;
+  providers: ProviderStatus[];
+}
+
 export interface BinaryFile {
   path: string;
   name: string;
@@ -121,6 +177,8 @@ export interface WorkspaceSummary {
   binary_found: boolean;
   /** User edits exist that the next run has not applied to Ghidra/code yet. */
   edits_pending: boolean;
+  /** Unreadable files (e.g. after a power cut); the next run sets them aside and redoes them. */
+  corrupt_files: string[];
   overrides: { functions: number; classes: number; globals: number };
   program: { name?: string; language?: string; compiler?: string; image_base?: string; pointer_size?: number };
   updated_at: string;

@@ -46,6 +46,7 @@ Other commands: `npm run build` (type-check, then production build into `dist/`)
 | `/run` | Start a run. Pick a binary (list, upload or path) and choose resume or start over. Common options are up front; every other setting can be overridden for this run. |
 | `/jobs`, `/jobs/:id` | Job list, and a live job view: stage timeline with progress, warnings, LLM call stats, Ghidra output, cancel |
 | `/settings` | Saved defaults for every run. The form is generated from the backend's JSON Schema. |
+| `/local` | Local llama.cpp server that the backend launches: start/stop/restart, state and log, a model picker (`.gguf` files found in the usual download folders), "use llama.cpp for new runs", and the server options |
 | `/workspaces/:name` | One binary's results, with tabs for overview, functions, classes, globals, project files, LLM logs and report |
 | `/workspaces/:name/functions/:address` | Ghidra (current round, round 0, assembly) side by side with the reconstructed C++. Also: analysis with confidence and evidence, Validator and compiler findings, proven memory accesses, callers and callees, the function's LLM calls. |
 | `/workspaces/:name/logs/:log` | One LLM call: response, prompt and system prompt |

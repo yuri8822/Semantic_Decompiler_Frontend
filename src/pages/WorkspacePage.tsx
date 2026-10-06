@@ -50,6 +50,14 @@ export default function WorkspacePage() {
         </div>
       </div>
       <ApplyEditsBar workspace={name} />
+      {w.corrupt_files?.length > 0 && (
+        <div className="alert alert-warn">
+          {w.corrupt_files.length} file{w.corrupt_files.length === 1 ? " is" : "s are"} unreadable (likely a crash or
+          power cut during a save): <code>{w.corrupt_files.slice(0, 4).join(", ")}</code>
+          {w.corrupt_files.length > 4 && " …"}. They're left out here; <b>Resume / run again</b> sets them aside and
+          redoes just those items.
+        </div>
+      )}
       {!w.binary_found && (
         <div className="alert alert-warn">
           The binary this workspace came from is no longer at <code>{w.binary}</code>. Put it in the backend's
